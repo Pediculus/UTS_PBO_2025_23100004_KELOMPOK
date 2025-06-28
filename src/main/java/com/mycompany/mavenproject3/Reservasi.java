@@ -3,31 +3,27 @@ package com.mycompany.mavenproject3;
 import java.util.Date;
 import java.time.LocalTime;
 
-/**
- *
- * @author HAK_PHENG
- */
 public class Reservasi {
-    private String kodeReservasi;
+    private int idReservasi;
     private String customerName;
     private Date tanggalReservasi;
     private LocalTime masaWaktuReservasi;
     private String detailReservasi;
 
-    public Reservasi(String kodeReservasi, String customerName, Date tanggalReservasi, LocalTime masaWaktuReservasi, String detailReservasi) {
-        this.kodeReservasi = kodeReservasi;
+    public Reservasi(int idReservasi, String customerName, Date tanggalReservasi, LocalTime masaWaktuReservasi, String detailReservasi) {
+        this.idReservasi = idReservasi;
         this.customerName = customerName;
         this.tanggalReservasi = tanggalReservasi;
         this.masaWaktuReservasi = masaWaktuReservasi;
         this.detailReservasi = detailReservasi;
     }
 
-    public String getKodeReservasi() {
-        return kodeReservasi;
+    public int getIdReservasi() {
+        return idReservasi;
     }
 
-    public void setKodeReservasi(String kodeReservasi) {
-        this.kodeReservasi = kodeReservasi;
+    public void setIdReservasi(int idReservasi) {
+        this.idReservasi = idReservasi;
     }
 
     public String getCustomerName() {
