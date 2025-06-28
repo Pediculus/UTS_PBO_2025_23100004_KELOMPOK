@@ -85,12 +85,14 @@ public class RuanganForm extends JFrame {
                 int chosen_one = statusField.getSelectedIndex();
                 String reserved = statusField.getSelectedItem().toString();
                 
-                if(chosen_one == 0){
+                if(chosen_one == 1){
                     status = true;
                 }
                 else{
                     status = false;
                 }
+                
+                
                
                 Ruangan ruang = new Ruangan(idCounter++, code, status);
                 ruangan.add(ruang);
@@ -125,7 +127,7 @@ public class RuanganForm extends JFrame {
                     int new_chosen_one = statusField.getSelectedIndex();
                     String newReserved = statusField.getSelectedItem().toString();
                     
-                    if(new_chosen_one == 0){
+                    if(new_chosen_one == 1){
                         newStatus = true;
                     }
                     else{
@@ -153,10 +155,28 @@ public class RuanganForm extends JFrame {
         });
 
         
-
+        loadData();
         add(new JScrollPane(drinkTable), BorderLayout.CENTER);
         add(formPanel, BorderLayout.NORTH);
 
+    }
+    
+    private void loadData() {
+        for (Ruangan r : ruangan) {
+            boolean status = r.isReserved();
+            int chosen_one = statusField.getSelectedIndex();
+            String ehe;
+            
+            if(status == true){
+                ehe = "Reserved";
+            }
+            else{
+                ehe = "Empty";
+            }
+            tableModel.addRow(new Object[]{
+                r.getId_ruang(), r.getKode_ruang(), ehe
+            });
+        }
     }
 }
 
