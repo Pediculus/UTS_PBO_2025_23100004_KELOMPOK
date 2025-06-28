@@ -1,189 +1,175 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.mycompany.mavenproject3;
 
-import java.awt.BorderLayout;
-import java.util.List;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import static javax.swing.WindowConstants.EXIT_ON_CLOSE;
+import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- *
- * @author HAK_PHENG
- */
 public class TransactionForm extends JFrame {
     private JTable drinkTable;
     private DefaultTableModel tableModel;
-    private JTextField qtyField;
-    private JComboBox<String> categoryField;
     private JComboBox<String> customerField;
-    private JTextField priceField;
-    private JTextField stockField;
+    private JButton addItemsButton;
     private JButton saveButton;
-    private JButton removeButton;
-    private JButton editButton;
-    private JButton refreshBannerButton; // refresh banner
-    private int idCounter = 3; 
+    private JButton viewDetailsButton;
 
+    private int idCounter = 1;
     private List<Product> products;
     private List<Sold> sold;
     private List<Customer> customer;
     private List<Transaction> transaction;
-    private Mavenproject3 mainWindow; //for main
+    private Mavenproject3 mainWindow;
     private ProductForm productform;
     private CustomerForm customerform;
 
-    // Accept product list and reference to main window
+    private List<TransactionItem> selectedItems = new ArrayList<>();
+
     public TransactionForm(List<Product> products, List<Sold> sold, Mavenproject3 mainWindow, List<Customer> customer, List<Transaction> transaction) {
         this.products = products;
         this.sold = sold;
-        this.mainWindow = mainWindow; // also for main
+        this.mainWindow = mainWindow;
         this.customer = customer;
+        this.transaction = transaction;
 
         setTitle("Form Transaksi");
-        setSize(600, 450);
+        setSize(700, 450);
         setLocationRelativeTo(null);
+        setLayout(new BorderLayout());
 
-        String[] columnNames = {"Nama Pelanggan", "Nama Produk", "Harga Jual", "Qty", "Harga Total"};
-        tableModel = new DefaultTableModel(columnNames, 0);
+        // Table setup
+        tableModel = new DefaultTableModel(new String[]{"Transaction Time", "Customer", "Total Harga"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
         drinkTable = new JTable(tableModel);
+        JScrollPane scrollPane = new JScrollPane(drinkTable);
+        add(scrollPane, BorderLayout.CENTER);
 
-        JPanel formPanel = new JPanel();
-        formPanel.add(new JLabel("Customer:"));
+        // Form Panel
+        JPanel formPanel = new JPanel(new FlowLayout());
+
         customerField = new JComboBox<>();
         for (Customer c : customer) {
             customerField.addItem(c.getName());
         }
+
+        formPanel.add(new JLabel("Customer:"));
         formPanel.add(customerField);
-        
-        formPanel.add(new JLabel("Barang:"));
-        categoryField = new JComboBox<>();
-        for (Product p : products) {
-            categoryField.addItem(p.getName());
-        }
-        formPanel.add(categoryField);
-        
-        formPanel.add(new JLabel("Stok Tersedia"));
-        stockField = new JTextField(10);
-        stockField.setEditable(false);
-        formPanel.add(stockField);
 
-        formPanel.add(new JLabel("Harga Jual:"));
-        priceField = new JTextField(10);
-        priceField.setEditable(false);
-        formPanel.add(priceField);
-
-        formPanel.add(new JLabel("Qty:"));
-        qtyField = new JTextField(10);
-        formPanel.add(qtyField);
-
+        addItemsButton = new JButton("Tambah Item");
+        formPanel.add(addItemsButton);
 
         saveButton = new JButton("Simpan");
-        removeButton = new JButton("Hapus");
-        editButton = new JButton("Edit");
-        refreshBannerButton = new JButton("Refresh Banner");
         formPanel.add(saveButton);
 
-        categoryField.addActionListener(e -> {
-            boxData();
-        });
-        
-        // Add product
-        saveButton.addActionListener(e -> {
-            try {
-                String customerName = customerField.getSelectedItem().toString();
-                String itemName = categoryField.getSelectedItem().toString();
-                double price = Double.parseDouble(priceField.getText());
-                double totalPrice;
-                int qty = Integer.parseInt(qtyField.getText());
+        add(formPanel, BorderLayout.NORTH);
+
+        drinkTable.getSelectionModel().addListSelectionListener(event -> {
+            int selectedRow = drinkTable.getSelectedRow();
+            if (selectedRow != -1) {
                 
-                
-                Product matchedProduct = null;
-                for(Product p : products){
-                    if(p.getName().equals(itemName)){
-                        matchedProduct = p;
-                        break;
-                    }
-                }
-                
-                if(matchedProduct == null){
-                    JOptionPane.showMessageDialog(drinkTable, "Produk tidak ditemukan");
-                    return;
-                }
-                if(qty > matchedProduct.getStock()){
-                    JOptionPane.showMessageDialog(drinkTable, "Stok tidak mencukupi");
-                    return;
-                }
-                
-                matchedProduct.setStock(matchedProduct.getStock() - qty);
-                
-                Transaction transactions = new Transaction(customerName, itemName, price, qty, price*qty );
-                transaction.add(transactions);
-                tableModel.addRow(new Object[]{customerName, itemName, price, qty, price*qty});
-                
-                priceField.setText("");
-                qtyField.setText("");
-                
-                
-                mainWindow.updateBannerText();
-                productform.refreshStock();
-                boxData();
-                
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Harga & Qty harus berupa angka!");
             }
         });
         
-        add(new JScrollPane(drinkTable), BorderLayout.CENTER);
-        add(formPanel, BorderLayout.NORTH);
+        // Add Item button logic
+        addItemsButton.addActionListener(e -> {
+            AddItemsDialog dialog = new AddItemsDialog(this, products);
+            dialog.setVisible(true);
+            selectedItems.clear();
+            selectedItems.addAll(dialog.getSelectedItems());
+        });
 
-        loadProductData(); // Load products into table at start
+        // Save button logic
+        saveButton.addActionListener(e -> {
+            String customerName = (String) customerField.getSelectedItem();
+            if (selectedItems.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Tambahkan item terlebih dahulu.");
+                return;
+            }
+
+            LocalDateTime time = LocalDateTime.now();
+            Transaction newTransaction = new Transaction(idCounter++, time, customerName);
+
+            for (TransactionItem item : selectedItems) {
+                Product product = products.stream()
+                        .filter(p -> p.getName().equals(item.getProductName()))
+                        .findFirst().orElse(null);
+
+                if (product != null && item.getQty() <= product.getStock()) {
+                    product.setStock(product.getStock() - item.getQty());
+                    newTransaction.addItem(item);
+                }
+            }
+
+            transaction.add(newTransaction);
+            selectedItems.clear();
+
+            // Add one row per transaction
+            tableModel.addRow(new Object[]{
+                    time,
+                    customerName,
+                    newTransaction.getTotalPrice()
+
+            });
+
+            mainWindow.updateBannerText();
+            productform.refreshStock();
+        });
+
+        // View Details button
+        viewDetailsButton = new JButton("Lihat Detail");
+        viewDetailsButton.addActionListener(e -> {
+            int selectedRow = drinkTable.getSelectedRow();
+            if (selectedRow != -1 && selectedRow < transaction.size()) {
+                Transaction t = transaction.get(selectedRow);
+                StringBuilder msg = new StringBuilder("Detail Pesanan:\n");
+
+                for (TransactionItem item : t.getItems()) {
+                    msg.append("- ").append(item.getProductName())
+                            .append(" x ").append(item.getQty())
+                            .append(" @ ").append(item.getPrice())
+                            .append(" = ").append(item.getTotalPrice())
+                            .append("\n");
+                }
+
+                JOptionPane.showMessageDialog(this, msg.toString(), "Detail Transaksi", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "Pilih baris transaksi terlebih dahulu.");
+            }
+        });
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(viewDetailsButton);
+        add(buttonPanel, BorderLayout.SOUTH);
+
+        loadProductData(); // Optional: for preloaded transactions
     }
-    
+
     public void setProductForm(ProductForm productForm) {
         this.productform = productForm;
     }
-    
-    public void setCustomerForm(CustomerForm customerform){
+
+    public void setCustomerForm(CustomerForm customerform) {
         this.customerform = customerform;
     }
-    
-    public void refreshBox(){
-        
-        customerField.removeAllItems();
 
+    public void refreshBox() {
+        customerField.removeAllItems();
         for (Customer c : customer) {
-                customerField.addItem(c.getName());
+            customerField.addItem(c.getName());
         }
     }
 
     private void loadProductData() {
         for (Sold s : sold) {
             tableModel.addRow(new Object[]{
-                s.getName(), s.getStock(), s.getPrice(), s.getQty()
+                    s.getName(), s.getPrice() * s.getQty(), "Lihat"
             });
-        }
-    }
-    
-    public void boxData(){
-        String selectedName = (String) categoryField.getSelectedItem();
-        for (Product p : products) {
-            if (p.getName().equals(selectedName)) {
-                stockField.setText(String.valueOf(p.getStock()));
-                priceField.setText(String.valueOf(p.getPrice()));
-                break;
-            }
         }
     }
 }
