@@ -14,24 +14,21 @@ import java.time.ZoneId;
 public class ReservasiForm extends JFrame {
     private JTable drinkTable;
     private DefaultTableModel tableModel;
-    private JTextField codeField;
     private JTextField nameField;
     private JXDatePicker datePicker;
-    private JTextField detailField;
     private JComboBox<String> ruangField;
     private JButton saveButton;
     private JButton removeButton;
     private JButton editButton;
-    private JSpinner timeSpinner; // NEW
+    private JSpinner timeSpinner;
 
-    private int idCounter = 0;
+    private int idCounter = 1;
     private SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
-    private SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm"); // NEW
+    private SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
 
     private List<Reservasi> reservasi;
     private List<Ruangan> ruang;
     private Mavenproject3 mainWindow;
-    private SoldForm soldform;
 
     public ReservasiForm(List<Reservasi> reservasi, Mavenproject3 mainWindow, List<Ruangan> ruang) {
         this.reservasi = reservasi;
@@ -42,15 +39,11 @@ public class ReservasiForm extends JFrame {
         setSize(600, 450);
         setLocationRelativeTo(null);
 
-        String[] columnNames = {"Code", "Customer Name", "Room", "Reserved at"};
+        String[] columnNames = {"ID", "Customer Name", "Room", "Reserved at"};
         tableModel = new DefaultTableModel(columnNames, 0);
         drinkTable = new JTable(tableModel);
 
         JPanel formPanel = new JPanel();
-
-        formPanel.add(new JLabel("Kode Reservasi"));
-        codeField = new JTextField(10);
-        formPanel.add(codeField);
 
         formPanel.add(new JLabel("Nama Customer:"));
         nameField = new JTextField(10);
@@ -77,10 +70,6 @@ public class ReservasiForm extends JFrame {
         datePicker.setFormats("dd-MM-yyyy");
         formPanel.add(datePicker);
 
-        formPanel.add(new JLabel("Detail Reservasi:"));
-        detailField = new JTextField(10);
-        formPanel.add(detailField);
-
         saveButton = new JButton("Simpan");
         removeButton = new JButton("Hapus");
         editButton = new JButton("Edit");
@@ -91,7 +80,6 @@ public class ReservasiForm extends JFrame {
         drinkTable.getSelectionModel().addListSelectionListener(event -> {
             int selectedRow = drinkTable.getSelectedRow();
             if (selectedRow != -1) {
-                codeField.setText(drinkTable.getValueAt(selectedRow, 0).toString());
                 nameField.setText(drinkTable.getValueAt(selectedRow, 1).toString());
 
                 // Set date
@@ -114,20 +102,18 @@ public class ReservasiForm extends JFrame {
 
         saveButton.addActionListener(e -> {
             try {
-                String code = codeField.getText();
                 String name = nameField.getText();
                 String room = ruangField.getSelectedItem().toString();
-                String detail = detailField.getText();
                 Date date = datePicker.getDate();
                 String formattedDate = sdf.format(date);
                 Date timeDate = (Date) timeSpinner.getValue();
                 LocalTime time = timeDate.toInstant().atZone(ZoneId.systemDefault()).toLocalTime();
                 String reservedAt = formattedDate + " at " + time;
 
-                Reservasi reserve = new Reservasi(code, name, date, time, detail);
+                Reservasi reserve = new Reservasi(idCounter++, name, date, time, null);
                 reservasi.add(reserve);
 
-                tableModel.addRow(new Object[]{code, name, room, reservedAt});
+                tableModel.addRow(new Object[]{reserve.getIdReservasi(), name, room, reservedAt});
                 clearFields();
                 mainWindow.updateBannerText();
 
@@ -152,29 +138,22 @@ public class ReservasiForm extends JFrame {
             int selectedRow = drinkTable.getSelectedRow();
             if (selectedRow != -1) {
                 try {
-                    String newCode = codeField.getText();
                     String newName = nameField.getText();
                     String newRoom = ruangField.getSelectedItem().toString();
-                    String newDetail = detailField.getText();
                     Date newDate = datePicker.getDate();
                     Date newTimeDate = (Date) timeSpinner.getValue();
                     LocalTime newTime = newTimeDate.toInstant().atZone(ZoneId.systemDefault()).toLocalTime();
                     String formattedDate = sdf.format(newDate);
 
-
                     Reservasi selectedReservasi = reservasi.get(selectedRow);
-                    selectedReservasi.setKodeReservasi(newCode);
                     selectedReservasi.setCustomerName(newName);
-                    selectedReservasi.setKodeReservasi(newRoom);
                     selectedReservasi.setTanggalReservasi(newDate);
                     selectedReservasi.setMasaWaktuReservasi(newTime);
-                    selectedReservasi.setDetailReservasi(newDetail);
 
-                    tableModel.setValueAt(newCode, selectedRow, 0);
+                    tableModel.setValueAt(selectedReservasi.getIdReservasi(), selectedRow, 0);
                     tableModel.setValueAt(newName, selectedRow, 1);
-                    tableModel.setValueAt(formattedDate, selectedRow, 2);
-                    tableModel.setValueAt(newRoom, selectedRow, 3);
-                    tableModel.setValueAt(newTime, selectedRow, 4);
+                    tableModel.setValueAt(newRoom, selectedRow, 2);
+                    tableModel.setValueAt(formattedDate + " at " + newTime, selectedRow, 3);
 
                     clearFields();
 
@@ -192,26 +171,19 @@ public class ReservasiForm extends JFrame {
         loadProductData();
     }
 
-    public void setSoldForm(SoldForm soldForm) {
-        this.soldform = soldForm;
-    }
-
     private void loadProductData() {
         for (Reservasi r : reservasi) {
             tableModel.addRow(new Object[]{
-                r.getKodeReservasi(),
+                r.getIdReservasi(),
                 r.getCustomerName(),
-                sdf.format(r.getTanggalReservasi()),
-                r.getMasaWaktuReservasi(),
-                r.getDetailReservasi()
+                "-", // Room display only
+                sdf.format(r.getTanggalReservasi()) + " at " + r.getMasaWaktuReservasi()
             });
         }
     }
 
     private void clearFields() {
-        codeField.setText("");
         nameField.setText("");
-        detailField.setText("");
         datePicker.setDate(new Date());
         timeSpinner.setValue(new Date());
     }
