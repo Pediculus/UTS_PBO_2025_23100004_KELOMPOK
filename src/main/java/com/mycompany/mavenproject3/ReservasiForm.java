@@ -6,42 +6,48 @@ import java.util.List;
 import java.util.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import org.jdesktop.swingx.JXDatePicker; // <-- Add this import
+import org.jdesktop.swingx.JXDatePicker;
 import java.util.Date;
 import java.time.LocalTime;
-//use JSpinner for time
-
+import java.time.ZoneId;
 
 public class ReservasiForm extends JFrame {
     private JTable drinkTable;
     private DefaultTableModel tableModel;
     private JTextField codeField;
     private JTextField nameField;
-    private JXDatePicker datePicker; // <-- Replaces dateField
+    private JXDatePicker datePicker;
     private JTextField detailField;
-    private JTextField timeField;
+    private JComboBox<String> ruangField;
     private JButton saveButton;
     private JButton removeButton;
     private JButton editButton;
+    private JSpinner timeSpinner; // NEW
+
     private int idCounter = 0;
-    SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+    private SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+    private SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm"); // NEW
+
     private List<Reservasi> reservasi;
+    private List<Ruangan> ruang;
     private Mavenproject3 mainWindow;
     private SoldForm soldform;
 
-    public ReservasiForm(List<Reservasi> reservasi, Mavenproject3 mainWindow) {
+    public ReservasiForm(List<Reservasi> reservasi, Mavenproject3 mainWindow, List<Ruangan> ruang) {
         this.reservasi = reservasi;
+        this.ruang = ruang;
         this.mainWindow = mainWindow;
 
         setTitle("AAA");
         setSize(600, 450);
         setLocationRelativeTo(null);
 
-        String[] columnNames = {"Code", "Customer Name", "Date", "Time", "Detail"};
+        String[] columnNames = {"Code", "Customer Name", "Room", "Reserved at"};
         tableModel = new DefaultTableModel(columnNames, 0);
         drinkTable = new JTable(tableModel);
 
         JPanel formPanel = new JPanel();
+
         formPanel.add(new JLabel("Kode Reservasi"));
         codeField = new JTextField(10);
         formPanel.add(codeField);
@@ -49,11 +55,22 @@ public class ReservasiForm extends JFrame {
         formPanel.add(new JLabel("Nama Customer:"));
         nameField = new JTextField(10);
         formPanel.add(nameField);
-        
+
+        formPanel.add(new JLabel("Ruangan:"));
+        ruangField = new JComboBox<>();
+        for (Ruangan r : ruang) {
+            ruangField.addItem(r.getKode_ruang());
+        }
+        formPanel.add(ruangField);
+
         formPanel.add(new JLabel("Waktu:"));
-        timeField = new JTextField(10);
-        formPanel.add(timeField);
-        
+        SpinnerDateModel timeModel = new SpinnerDateModel();
+        timeSpinner = new JSpinner(timeModel);
+        JSpinner.DateEditor timeEditor = new JSpinner.DateEditor(timeSpinner, "HH:mm");
+        timeSpinner.setEditor(timeEditor);
+        timeSpinner.setValue(new Date());
+        formPanel.add(timeSpinner);
+
         formPanel.add(new JLabel("Tanggal:"));
         datePicker = new JXDatePicker();
         datePicker.setDate(new Date());
@@ -76,9 +93,22 @@ public class ReservasiForm extends JFrame {
             if (selectedRow != -1) {
                 codeField.setText(drinkTable.getValueAt(selectedRow, 0).toString());
                 nameField.setText(drinkTable.getValueAt(selectedRow, 1).toString());
-                timeField.setText(drinkTable.getValueAt(selectedRow, 3).toString());
-                datePicker.setDate(new Date()); // Placeholder, parse your date here if needed
-                detailField.setText(drinkTable.getValueAt(selectedRow, 4).toString());
+
+                // Set date
+                try {
+                    Date date = sdf.parse(drinkTable.getValueAt(selectedRow, 2).toString());
+                    datePicker.setDate(date);
+                } catch (Exception e) {
+                    datePicker.setDate(new Date());
+                }
+
+                // Set time
+                try {
+                    Date time = timeFormat.parse(drinkTable.getValueAt(selectedRow, 3).toString());
+                    timeSpinner.setValue(time);
+                } catch (Exception e) {
+                    timeSpinner.setValue(new Date());
+                }
             }
         });
 
@@ -86,20 +116,23 @@ public class ReservasiForm extends JFrame {
             try {
                 String code = codeField.getText();
                 String name = nameField.getText();
+                String room = ruangField.getSelectedItem().toString();
                 String detail = detailField.getText();
                 Date date = datePicker.getDate();
-                String time = timeField.getText();
                 String formattedDate = sdf.format(date);
+                Date timeDate = (Date) timeSpinner.getValue();
+                LocalTime time = timeDate.toInstant().atZone(ZoneId.systemDefault()).toLocalTime();
+                String reservedAt = formattedDate + " at " + time;
 
                 Reservasi reserve = new Reservasi(code, name, date, time, detail);
                 reservasi.add(reserve);
-                
-                tableModel.addRow(new Object[]{code, name, formattedDate, time, detail});
+
+                tableModel.addRow(new Object[]{code, name, room, reservedAt});
                 clearFields();
                 mainWindow.updateBannerText();
-                soldform.refreshBox();
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Harga & Stock harus berupa angka!");
+
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Data tidak valid!");
             }
         });
 
@@ -110,9 +143,8 @@ public class ReservasiForm extends JFrame {
                 tableModel.removeRow(selectedRow);
                 clearFields();
                 mainWindow.updateBannerText();
-                soldform.refreshBox();
             } else {
-                JOptionPane.showMessageDialog(this, "Pilih produk yang ingin dihapus!");
+                JOptionPane.showMessageDialog(this, "Pilih reservasi yang ingin dihapus!");
             }
         });
 
@@ -122,14 +154,18 @@ public class ReservasiForm extends JFrame {
                 try {
                     String newCode = codeField.getText();
                     String newName = nameField.getText();
-                    String newTime = timeField.getText();
-                    Date newDate = datePicker.getDate();
-                    String formattedDate = sdf.format(newDate);
+                    String newRoom = ruangField.getSelectedItem().toString();
                     String newDetail = detailField.getText();
+                    Date newDate = datePicker.getDate();
+                    Date newTimeDate = (Date) timeSpinner.getValue();
+                    LocalTime newTime = newTimeDate.toInstant().atZone(ZoneId.systemDefault()).toLocalTime();
+                    String formattedDate = sdf.format(newDate);
+
 
                     Reservasi selectedReservasi = reservasi.get(selectedRow);
                     selectedReservasi.setKodeReservasi(newCode);
                     selectedReservasi.setCustomerName(newName);
+                    selectedReservasi.setKodeReservasi(newRoom);
                     selectedReservasi.setTanggalReservasi(newDate);
                     selectedReservasi.setMasaWaktuReservasi(newTime);
                     selectedReservasi.setDetailReservasi(newDetail);
@@ -137,17 +173,16 @@ public class ReservasiForm extends JFrame {
                     tableModel.setValueAt(newCode, selectedRow, 0);
                     tableModel.setValueAt(newName, selectedRow, 1);
                     tableModel.setValueAt(formattedDate, selectedRow, 2);
-                    tableModel.setValueAt(newTime, selectedRow, 3);
-                    tableModel.setValueAt(newDetail, selectedRow, 4);
+                    tableModel.setValueAt(newRoom, selectedRow, 3);
+                    tableModel.setValueAt(newTime, selectedRow, 4);
 
                     clearFields();
-                    mainWindow.updateBannerText();
-                    soldform.refreshBox();
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(this, "Harga & Stock harus berupa angka!");
+
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Gagal mengedit data!");
                 }
             } else {
-                JOptionPane.showMessageDialog(this, "Pilih produk yang ingin diubah!");
+                JOptionPane.showMessageDialog(this, "Pilih reservasi yang ingin diubah!");
             }
         });
 
@@ -164,7 +199,11 @@ public class ReservasiForm extends JFrame {
     private void loadProductData() {
         for (Reservasi r : reservasi) {
             tableModel.addRow(new Object[]{
-                r.getKodeReservasi(), r.getCustomerName(), r.getTanggalReservasi(), r.getMasaWaktuReservasi(), r.getDetailReservasi()
+                r.getKodeReservasi(),
+                r.getCustomerName(),
+                sdf.format(r.getTanggalReservasi()),
+                r.getMasaWaktuReservasi(),
+                r.getDetailReservasi()
             });
         }
     }
@@ -172,8 +211,8 @@ public class ReservasiForm extends JFrame {
     private void clearFields() {
         codeField.setText("");
         nameField.setText("");
-        timeField.setText("");
-        datePicker.setDate(new Date());
         detailField.setText("");
+        datePicker.setDate(new Date());
+        timeSpinner.setValue(new Date());
     }
 }
