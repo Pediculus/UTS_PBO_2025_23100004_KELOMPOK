@@ -34,7 +34,6 @@ public class RuanganForm extends JFrame {
     private List<Product> products;
     private List<Customer> customers;
     private Mavenproject3 mainWindow; //for main
-    private SoldForm soldform;
     private TransactionForm transactionform;
     private List<Ruangan> ruangan;
     
