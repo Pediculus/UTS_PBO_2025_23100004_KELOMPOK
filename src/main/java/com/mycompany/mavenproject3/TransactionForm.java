@@ -108,12 +108,13 @@ public class TransactionForm extends JFrame {
 
             transaction.add(newTransaction);
             selectedItems.clear();
-
+            double total = newTransaction.getTotalPrice();
+            String formatted = "Rp." + String.valueOf(total);
             // Add one row per transaction
             tableModel.addRow(new Object[]{
                     time,
                     customerName,
-                    newTransaction.getTotalPrice()
+                    formatted
 
             });
 
@@ -132,8 +133,9 @@ public class TransactionForm extends JFrame {
                 for (TransactionItem item : t.getItems()) {
                     msg.append("- ").append(item.getProductName())
                             .append(" x ").append(item.getQty())
-                            .append(" @ ").append(item.getPrice())
-                            .append(" = ").append(item.getTotalPrice())
+                            .append(" @ ").append("Rp.")
+                            .append(item.getPrice()).append(" = ")
+                            .append("Rp.").append(item.getTotalPrice())
                             .append("\n");
                 }
 
